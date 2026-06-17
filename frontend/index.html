@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Plant Disease Detection</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="logo">🌿 PlantHealAI</div>
+      <div class="nav-links">
+        <a href="#upload-section">Detect</a>
+        <a href="#history-section">History</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content">
+      <span class="hero-eyebrow">AI-Powered Agricultural Intelligence</span>
+      <h1 class="hero-title">Diagnose your plant,<br/><em>instantly.</em></h1>
+      <p class="hero-sub">Upload a leaf photo. Our model identifies the disease, and Gemini AI delivers treatment, remedies, and prevention guidance — in your language.</p>
+    </div>
+    <div class="hero-visual">
+      <div class="leaf-ring"><span class="leaf-icon">🍃</span></div>
+    </div>
+  </section>
+
+  <section id="upload-section" class="section">
+    <div class="container">
+      <h2 class="section-title">Upload or Capture a Leaf</h2>
+      <div class="upload-grid">
+        <label class="upload-zone" id="drop-zone">
+          <input type="file" id="file-input" accept="image/*" hidden />
+          <div class="upload-zone-inner">
+            <span class="upload-icon">📷</span>
+            <p class="upload-label">Drag & drop or click to upload</p>
+            <p class="upload-hint">Supports JPG, PNG, WEBP</p>
+          </div>
+        </label>
+        <div class="upload-actions">
+          <button class="btn btn-primary" id="camera-btn">📸 Open Camera</button>
+          <button class="btn btn-outline" id="analyze-btn" disabled>🔬 Analyze Leaf</button>
+          <div id="image-preview-wrap" class="image-preview-wrap hidden">
+            <img id="image-preview" src="" alt="Preview" />
+            <button class="clear-btn" id="clear-btn">✕ Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="camera-modal" class="modal hidden">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3>Capture Leaf Image</h3>
+            <button class="modal-close" id="close-camera">✕</button>
+          </div>
+          <video id="camera-video" autoplay playsinline></video>
+          <div class="modal-footer">
+            <button class="btn btn-primary" id="snap-btn">📸 Capture</button>
+          </div>
+          <canvas id="camera-canvas" hidden></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p id="loading-text">Analyzing leaf...</p>
+    </div>
+  </div>
+
+  <section id="result-section" class="section hidden">
+    <div class="container">
+      <div class="detection-card">
+        <div class="detection-header">
+          <div>
+            <span class="detection-eyebrow">Detection Result</span>
+            <h2 class="detection-title" id="res-disease">—</h2>
+            <p class="detection-plant" id="res-plant">—</p>
+          </div>
+          <div class="detection-meta">
+            <div class="confidence-ring">
+              <svg viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" stroke-width="7"/>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#16a34a" stroke-width="7"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                  stroke-linecap="round" transform="rotate(-90 40 40)" id="confidence-arc"/>
+              </svg>
+              <div class="confidence-label"><span id="res-confidence">0</span>%</div>
+            </div>
+            <span class="severity-badge" id="res-severity">—</span>
+          </div>
+        </div>
+        <div class="voice-controls">
+          <label class="voice-label">🔊 Voice Language</label>
+          <select id="lang-select" class="lang-select">
+            <option value="en-US">English</option>
+            <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
+            <option value="hi-IN">हिंदी (Hindi)</option>
+            <option value="ta-IN">தமிழ் (Tamil)</option>
+            <option value="te-IN">తెలుగు (Telugu)</option>
+          </select>
+          <button class="btn btn-voice" id="speak-btn">▶ Listen</button>
+          <button class="btn btn-voice btn-stop" id="stop-btn">⏹ Stop</button>
+          <button class="btn btn-primary" id="pdf-btn">⬇ Download Report</button>
+        </div>
+      </div>
+
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="overview">Overview</button>
+          <button class="tab-btn" data-tab="symptoms">Symptoms & Causes</button>
+          <button class="tab-btn" data-tab="remedies">Remedies</button>
+          <button class="tab-btn" data-tab="treatment">Treatment</button>
+          <button class="tab-btn" data-tab="prevention">Prevention</button>
+        </div>
+        <div class="tab-content active" id="tab-overview">
+          <div class="advisory-card">
+            <h3 class="advisory-title">📋 About this Disease</h3>
+            <p id="adv-description" class="advisory-text">—</p>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-symptoms">
+          <div class="advisory-grid">
+            <div class="advisory-card">
+              <h3 class="advisory-title">🔍 Symptoms</h3>
+              <ul id="adv-symptoms" class="advisory-list"></ul>
+            </div>
+            <div class="advisory-card">
+              <h3 class="advisory-title">⚠️ Causes</h3>
+              <ul id="adv-causes" class="advisory-list"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-remedies">
+          <div class="advisory-grid">
+            <div class="advisory-card">
+              <h3 class="advisory-title">🌿 Traditional Remedies</h3>
+              <ul id="adv-traditional" class="advisory-list"></ul>
+            </div>
+            <div class="advisory-card">
+              <h3 class="advisory-title">🍃 Organic Remedies</h3>
+              <ul id="adv-organic" class="advisory-list"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-treatment">
+          <div class="advisory-grid">
+            <div class="advisory-card">
+              <h3 class="advisory-title">💊 Modern Treatments</h3>
+              <ul id="adv-modern" class="advisory-list"></ul>
+            </div>
+            <div class="advisory-card">
+              <h3 class="advisory-title">🧪 Recommended Medicines</h3>
+              <ul id="adv-medicines" class="advisory-list medicines-list"></ul>
+            </div>
+          </div>
+          <div class="advisory-card mt">
+            <h3 class="advisory-title">⚠️ Precautions</h3>
+            <ul id="adv-precautions" class="advisory-list"></ul>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-prevention">
+          <div class="advisory-card">
+            <h3 class="advisory-title">🛡️ Prevention Methods</h3>
+            <ul id="adv-prevention" class="advisory-list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="chatbot-container">
+        <div class="chatbot-header">
+          <span>🤖 Ask the Plant AI</span>
+          <span class="chatbot-hint">Type or use your voice</span>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+          <div class="chat-msg bot">
+            <span>👋 Hi! I've analyzed your plant. Ask me anything about the disease, treatment, or prevention.</span>
+          </div>
+        </div>
+        <div class="chatbot-input-row">
+          <input type="text" id="chat-input" class="chat-input" placeholder="e.g. Can this disease spread?" />
+          <button class="btn btn-voice" id="voice-input-btn" title="Voice input">🎤</button>
+          <button class="btn btn-primary" id="send-chat-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="history-section" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Detection History</h2>
+        <button class="btn btn-outline" id="refresh-history-btn">↻ Refresh</button>
+      </div>
+      <div id="history-list" class="history-list">
+        <p class="empty-state">No detections yet. Upload a leaf to get started.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>🌿AI Plant Disease Detection System</p>
+      <p class="footer-sub">Built with TensorFlow · Gemini AI · Flask · Web Speech API</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

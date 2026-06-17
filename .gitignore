@@ -1,0 +1,8 @@
+dataset/
+plantvillage dataset/
+venv/
+__pycache__/
+*.pyc
+
+backend/history.db
+backend/static/uploads/
