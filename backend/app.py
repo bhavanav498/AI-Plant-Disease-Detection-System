@@ -116,16 +116,27 @@ def text_to_speech():
 # ── PDF ───────────────────────────────────────────
 @app.route("/generate-pdf", methods=["POST"])
 def pdf():
-    data = request.json
-    path = generate_pdf(data, REPORTS_FOLDER)
-    conn = get_db()
-    conn.execute(
-        "UPDATE detections SET report_path = ? WHERE plant = ? AND disease = ? ORDER BY id DESC LIMIT 1",
-        (path, data.get("plant"), data.get("disease"))
-    )
-    conn.commit()
-    conn.close()
-    return jsonify({"pdf_path": path})
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        path = generate_pdf(data, REPORTS_FOLDER)
+        print(f"✅ PDF generated: {path}")
+
+        conn = get_db()
+        conn.execute(
+            "UPDATE detections SET report_path = ? WHERE plant = ? AND disease = ? ORDER BY id DESC LIMIT 1",
+            (path, data.get("plant"), data.get("disease"))
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"pdf_path": path})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"❌ PDF generation error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/download-pdf/<filename>", methods=["GET"])

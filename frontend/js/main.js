@@ -315,23 +315,49 @@ function splitIntoChunks(text, maxLen) {
    PDF
 ══════════════════════════════════════ */
 pdfBtn.addEventListener("click", async () => {
-  if (!currentData) return;
+  if (!currentData) { alert("Please analyze a leaf first."); return; }
   const orig = pdfBtn.textContent;
   pdfBtn.textContent = "⏳ Generating..."; pdfBtn.disabled = true;
   try {
-    const res  = await fetch(`${API}/generate-pdf`, {
+    // Step 1 — Ask backend to generate the PDF
+    const res = await fetch(`${API}/generate-pdf`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(currentData)
     });
-    const data = await res.json();
-    if (data.pdf_path) {
-      const filename = data.pdf_path.split(/[\\/]/).pop();
-      const link = document.createElement("a");
-      link.href = `${API}/download-pdf/${filename}`; link.download = filename;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
     }
-  } catch (err) { alert("PDF failed: " + err.message); }
-  finally { pdfBtn.textContent = orig; pdfBtn.disabled = false; }
+
+    const data = await res.json();
+    if (!data.pdf_path) throw new Error("No PDF path returned from server");
+
+    const filename = data.pdf_path.split(/[\\/]/).pop();
+
+    // Step 2 — Fetch the actual PDF file as a blob (more reliable than direct link)
+    pdfBtn.textContent = "⏳ Downloading...";
+    const fileRes = await fetch(`${API}/download-pdf/${filename}`);
+    if (!fileRes.ok) throw new Error("Could not download the generated PDF");
+
+    const blob = await fileRes.blob();
+    const url  = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("PDF error:", err);
+    alert("PDF download failed: " + err.message + "\n\nMake sure the backend is running on port 5000.");
+  } finally {
+    pdfBtn.textContent = orig;
+    pdfBtn.disabled = false;
+  }
 });
 
 /* ══════════════════════════════════════
@@ -370,10 +396,19 @@ async function deleteHistory(id) {
   loadHistory();
 }
 
-function downloadReport(filename) {
-  const link = document.createElement("a");
-  link.href = `${API}/download-pdf/${filename}`; link.download = filename;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+async function downloadReport(filename) {
+  try {
+    const res = await fetch(`${API}/download-pdf/${filename}`);
+    if (!res.ok) throw new Error("File not found on server");
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Could not download report: " + err.message);
+  }
 }
 
 refreshHistory.addEventListener("click", loadHistory);
